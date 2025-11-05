@@ -15,6 +15,7 @@ require (
 	github.com/rackn/netwrangler v0.7.1
 	github.com/sirupsen/logrus v1.9.3
 	github.com/vishvananda/netlink v1.3.0
+	github.com/vishvananda/netns v0.0.4
 	go.uber.org/mock v0.5.0
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
 	golang.org/x/sys v0.26.0
@@ -62,7 +63,6 @@ require (
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/rackn/gohai v0.0.0-20190619164647-92918a701117 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/vishvananda/netns v0.0.4 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
