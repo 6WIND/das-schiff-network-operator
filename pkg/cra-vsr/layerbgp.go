@@ -349,14 +349,12 @@ func (l *LayerBGP) setupNeighbor(bgp *BGP, conf v1alpha1.BGPPeer) {
 	switch {
 	case conf.Address != nil:
 		bgp.NeighborIPs = append(bgp.NeighborIPs, BGPNeighborIP{
-			Address:        *conf.Address,
-			EnforceFirstAS: types.ToPtr(true),
+			Address: *conf.Address,
 		})
 		neigh = &bgp.NeighborIPs[len(bgp.NeighborIPs)-1].BGPNeighbor
 	case conf.ListenRange != nil:
 		bgp.NeighGroups = append(bgp.NeighGroups, BGPNeighborGroup{
-			Name:           name,
-			EnforceFirstAS: types.ToPtr(true),
+			Name: name,
 		})
 		neigh = &bgp.NeighGroups[len(bgp.NeighGroups)-1].BGPNeighbor
 		if bgp.Listen == nil {
@@ -370,6 +368,7 @@ func (l *LayerBGP) setupNeighbor(bgp *BGP, conf v1alpha1.BGPPeer) {
 		return
 	}
 
+	neigh.EnforceFirstAS = types.ToPtr(true)
 	neigh.RemoteAS = types.ToPtr(strconv.Itoa(int(conf.RemoteASN)))
 
 	if conf.KeepaliveTime != nil || conf.HoldTime != nil {
@@ -443,8 +442,7 @@ func (LayerBGP) setupBaseNeighbor(bgp *BGP, conf *config.Neighbor, isUnderlay bo
 	switch {
 	case conf.IP != nil:
 		bgp.NeighborIPs = append(bgp.NeighborIPs, BGPNeighborIP{
-			Address:        *conf.IP,
-			EnforceFirstAS: types.ToPtr(true),
+			Address: *conf.IP,
 		})
 		neigh = &bgp.NeighborIPs[len(bgp.NeighborIPs)-1].BGPNeighbor
 	case conf.Interface != nil:
@@ -454,14 +452,14 @@ func (LayerBGP) setupBaseNeighbor(bgp *BGP, conf *config.Neighbor, isUnderlay bo
 			IPv6Only:   types.ToPtr(false),
 		})
 		bgp.NeighGroups = append(bgp.NeighGroups, BGPNeighborGroup{
-			Name:           *conf.Interface + "-leaf",
-			EnforceFirstAS: types.ToPtr(true),
+			Name: *conf.Interface + "-leaf",
 		})
 		neigh = &bgp.NeighGroups[len(bgp.NeighGroups)-1].BGPNeighbor
 	default:
 		return
 	}
 
+	neigh.EnforceFirstAS = types.ToPtr(true)
 	neigh.RemoteAS = &conf.RemoteASN
 	neigh.Timers = &BGPNeighTimers{
 		KeepAliveInterval: &conf.KeepaliveTime,
