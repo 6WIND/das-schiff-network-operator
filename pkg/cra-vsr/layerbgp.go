@@ -299,7 +299,7 @@ func (l *LayerBGP) setupPolicyRoute(i int, conf v1alpha1.PolicyRoute) error {
 		return fmt.Errorf("invalid policy-route without nexthop vrf")
 	}
 
-	nhVrf := lookupVRF(l.ns, *conf.NextHop.Vrf)
+	nhVrf := LookupVRF(l.ns, *conf.NextHop.Vrf)
 	if nhVrf == nil {
 		return fmt.Errorf("invalid policy-route nexthop vrf: %s", *conf.NextHop.Vrf)
 	}
@@ -543,7 +543,7 @@ func (LayerBGP) setupBaseNeighbor(bgp *BGP, conf *config.Neighbor, isUnderlay bo
 }
 
 func (l *LayerBGP) setupLocalVRF(name string, conf *v1alpha1.VRF) error {
-	vrf := lookupVRF(l.ns, name)
+	vrf := LookupVRF(l.ns, name)
 	if vrf == nil {
 		return fmt.Errorf("vrf %s not found in netns %s", name, l.ns.Name)
 	}
@@ -589,7 +589,7 @@ func (l *LayerBGP) setupLocalVRF(name string, conf *v1alpha1.VRF) error {
 func (l *LayerBGP) setupFabricVRF(name string, conf *v1alpha1.FabricVRF) error {
 	vni := int(conf.VNI)
 
-	vrf := lookupVRF(l.ns, name)
+	vrf := LookupVRF(l.ns, name)
 	if vrf == nil {
 		return fmt.Errorf("vrf %s not found in netns %s", name, l.ns.Name)
 	}
@@ -673,7 +673,7 @@ func (l *LayerBGP) setupClusterVRF() error {
 	vni := baseCfg.ClusterVRF.VNI
 	conf := l.nodeCfg.ClusterVRF
 
-	vrf := lookupVRF(l.ns, name)
+	vrf := LookupVRF(l.ns, name)
 	if vrf == nil {
 		return fmt.Errorf("vrf %s not found in netns %s", name, l.ns.Name)
 	}
@@ -791,7 +791,7 @@ func (l *LayerBGP) setupManagementVRF() error {
 	name := baseCfg.ManagementVRF.Name
 	vni := baseCfg.ManagementVRF.VNI
 
-	vrf := lookupVRF(l.ns, name)
+	vrf := LookupVRF(l.ns, name)
 	if vrf == nil {
 		return fmt.Errorf("vrf %s not found in netns %s", name, l.ns.Name)
 	}
