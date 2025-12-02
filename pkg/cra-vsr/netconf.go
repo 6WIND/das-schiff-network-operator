@@ -17,6 +17,7 @@ limitations under the License.
 package cra
 
 import (
+	"bytes"
 	"context"
 	"encoding/xml"
 	"errors"
@@ -68,6 +69,14 @@ type DataReply struct {
 	Data    []byte   `xml:",innerxml"`
 }
 
+type RPCReply struct {
+	Refresh []byte `xml:"refresh-rpc,omitempty"`
+	Status  []byte `xml:"status-rpc,omitempty"`
+	Stop    []byte `xml:"stop-command,omitempty"`
+	Exit    *int   `xml:"exit-code,omitempty"`
+	Body    []byte `xml:",innerxml"`
+}
+
 type Netconf struct {
 	session   *netconf.Session
 	timeout   time.Duration
@@ -116,7 +125,7 @@ func (nc *Netconf) Open(ctx context.Context) error {
 	return fmt.Errorf("all CRA URLs failed due to connection issues")
 }
 
-func (nc *Netconf) Send(ctx context.Context, req, rep any) error {
+func (nc *Netconf) Send(ctx context.Context, req, rep any, wrap bool) error {
 	if nc.session == nil {
 		if err := nc.Open(ctx); err != nil {
 			return fmt.Errorf("failed to open netconf session: %w", err)
@@ -127,7 +136,11 @@ func (nc *Netconf) Send(ctx context.Context, req, rep any) error {
 		var err error
 
 		subctx, cancel := context.WithTimeout(ctx, nc.timeout)
-		err = nc.session.Call(subctx, req, rep)
+		if !wrap {
+			err = nc.session.Call(subctx, req, rep)
+		} else {
+			err = nc.session.CallWrap(subctx, req, rep)
+		}
 		cancel()
 
 		if err == nil {
@@ -155,7 +168,7 @@ func (nc *Netconf) Get(ctx context.Context, ds Datastore, filter string) ([]byte
 	}
 
 	var rep DataReply
-	if err := nc.Send(ctx, &req, &rep); err != nil {
+	if err := nc.Send(ctx, &req, &rep, false); err != nil {
 		return []byte{}, fmt.Errorf("failed to get netconf ds=%s filter=%s: %w", ds, filter, err)
 	}
 
@@ -211,7 +224,7 @@ func (nc *Netconf) Edit(
 	}
 
 	var rep netconf.OKResp
-	if err := nc.Send(ctx, &req, &rep); err != nil {
+	if err := nc.Send(ctx, &req, &rep, false); err != nil {
 		return fmt.Errorf("failed to edit netconf: %w", err)
 	}
 
@@ -222,8 +235,48 @@ func (nc *Netconf) Commit(ctx context.Context) error {
 	var req netconf.CommitReq
 	var rep netconf.OKResp
 
-	if err := nc.Send(ctx, &req, &rep); err != nil {
+	if err := nc.Send(ctx, &req, &rep, false); err != nil {
 		return fmt.Errorf("failed to commit netconf: %w", err)
+	}
+
+	return nil
+}
+
+func (nc *Netconf) RPC(ctx context.Context, req, out any) error {
+	var rep RPCReply
+	if err := nc.Send(ctx, req, &rep, true); err != nil {
+		return fmt.Errorf("failed to send netconf rpc: %w", err)
+	}
+
+	buf := bytes.Buffer{}
+	buf.WriteString("<wrap>")
+	buf.Write(rep.Body)
+
+	refresh := rep.Refresh
+	status := rep.Status
+	isLong := len(refresh) > 0 && len(status) > 0
+
+	//nolint:mnd
+	for isLong && rep.Exit != nil {
+		time.Sleep(50 * time.Millisecond)
+
+		rep = RPCReply{}
+		if err := nc.Send(ctx, &refresh, &rep, true); err != nil {
+			return fmt.Errorf("failed to refresh netconf rpc: %w", err)
+		}
+
+		rep = RPCReply{}
+		if err := nc.Send(ctx, &status, &rep, true); err != nil {
+			return fmt.Errorf("failed to get status of netconf rpc: %w", err)
+		}
+
+		buf.Write(rep.Body)
+	}
+
+	buf.WriteString("</wrap>")
+
+	if err := xml.Unmarshal(buf.Bytes(), out); err != nil {
+		return fmt.Errorf("failed to unmarshal netconf rpc: %w", err)
 	}
 
 	return nil
